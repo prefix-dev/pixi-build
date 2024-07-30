@@ -4,6 +4,8 @@ use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use pixi_manifest::TargetSelector::Platform;
+use pixi_manifest::{FeatureName, Manifest, SpecType};
+use rattler_build::recipe::parser::{Build, Requirements};
 use rattler_build::{
     hash::HashInfo,
     metadata::{BuildConfiguration, Directories, Output, PackagingSettings},
@@ -12,8 +14,7 @@ use rattler_build::{
         Recipe,
     },
 };
-use rattler_build::recipe::parser::{Build, Requirements};
-use rattler_conda_types::{package::ArchiveType, NoArchType};
+use rattler_conda_types::{package::ArchiveType, MatchSpec, NoArchType};
 use rattler_package_streaming::write::CompressionLevel;
 
 #[allow(missing_docs)]
@@ -25,8 +26,38 @@ pub struct App {
     manifest_path: PathBuf,
 }
 
+/// Get the requirements for a default feature
+fn requirements_from_manifest(manifest: &Manifest) -> Requirements {
+    let mut requirements = Requirements::default();
+    let default_features = manifest
+        .default_environment()
+        .features
+        .iter()
+        .filter_map(|e| manifest.feature(&FeatureName::Named(e.clone())))
+        .collect::<Vec<_>>();
+
+    // Get all different feature types
+    let run_dependencies = default_features
+        .iter()
+        .filter_map(|f| f.dependencies(Some(SpecType::Run), None))
+        .collect::<Vec<_>>();
+    let host_dependencies = default_features
+        .iter()
+        .filter_map(|f| f.dependencies(Some(SpecType::Run), None))
+        .collect::<Vec<_>>();
+    let build_dependencies = default_features
+        .iter()
+        .filter_map(|f| f.dependencies(Some(SpecType::Run), None))
+        .collect::<Vec<_>>();
+
+    requirements
+}
+
 fn main() {
     let args = App::parse();
+
+    let manifest = Manifest::from_path(args.manifest_path).expect("could not load manifest");
+    requirements_from_manifest(&manifest);
 
     // Load the manifest
     eprintln!("Looking for manifest at {:?}", args.manifest_path);
@@ -63,9 +94,8 @@ fn main() {
             build: Build {
                 // TODO:
             },
-            requirements: Requirements {
-                  
-            },
+            // TODO read from manifest
+            requirements: Requirements {},
             tests: vec![],
             about: Default::default(),
             extra: Default::default(),
