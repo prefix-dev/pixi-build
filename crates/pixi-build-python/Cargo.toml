@@ -8,3 +8,6 @@ pixi_manifest = { workspace = true }
 pixi_consts = { workspace = true }
 rattler-build = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
+rattler_conda_types = { workspace = true }
+rattler_package_streaming = { workspace = true }
+chrono = { workspace = true }
