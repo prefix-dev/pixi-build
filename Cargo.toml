@@ -1,2 +1,12 @@
 [workspace]
 members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+clap = "4.5.11"
+pixi_manifest = { git = "https://github.com/prefix-dev/pixi", branch="main" }
+pixi_consts = { git = "https://github.com/prefix-dev/pixi", branch="main" }
+rattler-build = { git = "https://github.com/tdejager/rattler-build", branch = "feat/optional-recipe-generation", default-features = false }
