@@ -174,7 +174,7 @@ async fn actual_main() -> miette::Result<()> {
         recipe: Recipe {
             schema_version: 1,
             package: Package {
-                version: version.to_string(),
+                version: version.to_string().parse().into_diagnostic()?,
                 name,
             },
             cache: None,
