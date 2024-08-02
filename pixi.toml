@@ -1,0 +1,50 @@
+[project]
+name = "pixi-build"
+version = "0.1.0"
+description = "Binary for building pixi projects into packages"
+authors = ["Tim de Jager <tim@prefix.dev>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tasks]
+run-release = { cmd = "cargo run --release", inputs = [
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+], outputs = [
+    "target/debug/**",
+] }
+
+build = { cmd = "cargo build", inputs = [
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+], outputs = [
+    "target/debug/**",
+] }
+build-release = { cmd = "cargo build --release", inputs = [
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+], outputs = [
+    "target/release/**",
+] }
+run = { cmd = "cargo run", inputs = [
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+], outputs = [
+    "target/debug/**",
+] }
+[dependencies]
+rust = ">=1.80.0,<2"
+python = ">=3.12.4,<4"
+
+[feature.test.dependencies]
+pytest = ">=8.3.2,<9"
+
+[feature.test.tasks]
+integration-test = { cmd = "pytest tests", depends-on = "build" }
+
+[environments]
+test = ["test"]

@@ -24,7 +24,9 @@ Cargo.lock
 
 # pixi
 .pixi/
-pixi.lock
 
 # Visual studio files
 .vs/
+# pixi environments
+.pixi
+*.egg-info
