@@ -23,6 +23,7 @@ use rattler_conda_types::{
 };
 use rattler_package_streaming::write::CompressionLevel;
 use reqwest::{Client, Url};
+use tempfile::tempdir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[allow(missing_docs)]
@@ -141,16 +142,16 @@ async fn actual_main() -> miette::Result<()> {
     let noarch_type = NoArchType::python();
 
     // TODO: Setup defaults
-    let output_dir = std::env::current_dir()
-        .expect("failed to get current directory")
-        .join("pixi-build-python-output");
+    let output_dir = tempdir()
+        .into_diagnostic()
+        .context("failed to create temporary directory")?;
     std::fs::create_dir_all(&output_dir)
         .into_diagnostic()
         .context("failed to create output directory")?;
     let directories = Directories::setup(
         name.as_normalized(),
         args.manifest_path.as_path(),
-        &output_dir,
+        output_dir.path(),
         false,
         &Utc::now(),
     )
