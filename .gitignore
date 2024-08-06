@@ -27,6 +27,10 @@ Cargo.lock
 
 # Visual studio files
 .vs/
+
 # pixi environments
 .pixi
 *.egg-info
+
+# Output directory
+pixi-build-python-output/

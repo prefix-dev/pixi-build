@@ -16,5 +16,6 @@ reqwest-middleware = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tempfile = { workspace = true }
-clap-verbosity-flag = { workspace = true}
+clap-verbosity-flag = { workspace = true }
 tracing-subscriber = { workspace = true }
+serde_yaml = { workspace = true }

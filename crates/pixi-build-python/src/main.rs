@@ -1,6 +1,6 @@
 mod consts;
 
-use std::{collections::BTreeMap, path::PathBuf, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, io::BufWriter, path::PathBuf, str::FromStr, sync::Arc};
 
 use chrono::Utc;
 use clap::Parser;
@@ -174,7 +174,7 @@ async fn actual_main() -> miette::Result<()> {
         recipe: Recipe {
             schema_version: 1,
             package: Package {
-                version: version.to_string().parse().into_diagnostic()?,
+                version: version.into(),
                 name,
             },
             cache: None,
@@ -262,8 +262,26 @@ async fn actual_main() -> miette::Result<()> {
         compression_threads: None,
     };
 
+    let (recipe_file, recipe_path) = tempfile::Builder::new()
+        .prefix(".rendered-recipe")
+        .suffix(".yaml")
+        .tempfile_in(output_dir)
+        .into_diagnostic()
+        .context("failed to create temporary file for recipe")?
+        .into_parts();
+
+    // Write the recipe back to a file
+    serde_yaml::to_writer(BufWriter::new(recipe_file), &output.recipe)
+        .into_diagnostic()
+        .context("failed to write recipe to temporary file")?;
+
     let (_output, package) = run_build(output, &tool_config).await?;
     eprintln!("Successfully build '{}'", package.display());
+
+    // Remove the temporary recipe file.
+    std::fs::remove_file(recipe_path)
+        .into_diagnostic()
+        .context("failed to remove temporary recipe file")?;
 
     Ok(())
 }
