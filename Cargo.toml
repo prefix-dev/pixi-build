@@ -10,7 +10,7 @@ clap = "4.5.11"
 pixi_manifest = { git = "https://github.com/prefix-dev/pixi", branch = "main" }
 pixi_consts = { git = "https://github.com/prefix-dev/pixi", branch = "main" }
 rattler-build = { git = "https://github.com/prefix-dev/rattler-build", branch = "main", default-features = false }
-rattler_conda_types = "0.26.3"
+rattler_conda_types = "0.27.0"
 rattler_package_streaming = "0.21.7"
 chrono = "0.4.38"
 miette = "7.2.0"
