@@ -4,8 +4,11 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-pixi_manifest = { workspace = true }
+pixi_build_types = { workspace = true }
 pixi_consts = { workspace = true }
+pixi_manifest = { workspace = true }
+pixi_spec = { workspace = true }
+
 rattler-build = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 rattler_conda_types = { workspace = true }
@@ -19,3 +22,9 @@ tempfile = { workspace = true }
 clap-verbosity-flag = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde_yaml = { workspace = true }
+
+parking_lot = { workspace = true }
+
+jsonrpc-stdio-server = { workspace = true }
+jsonrpc-http-server = { workspace = true }
+jsonrpc-core = { workspace = true }
