@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "BackendCapabilities": {
+      "properties": {
+        "providesCondaMetadata": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the backend is capable of providing metadata about source packages",
+          "title": "Providescondametadata"
+        }
+      },
+      "title": "BackendCapabilities",
+      "type": "object"
+    },
+    "CondaMetadataParams": {
+      "properties": {
+        "target_platform": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The target platform, or the current platform if not specified",
+          "title": "Target Platform"
+        }
+      },
+      "title": "CondaMetadataParams",
+      "type": "object"
+    },
+    "CondaMetadataResult": {
+      "properties": {
+        "packages": {
+          "items": {
+            "$ref": "#/$defs/CondaPackageMetadata"
+          },
+          "title": "Packages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "packages"
+      ],
+      "title": "CondaMetadataResult",
+      "type": "object"
+    },
+    "CondaPackageMetadata": {
+      "properties": {
+        "name": {
+          "description": "The name of the package",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of the package",
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "build": {
+          "description": "The build string of the package",
+          "minLength": 1,
+          "title": "Build",
+          "type": "string"
+        },
+        "build_number": {
+          "default": 0,
+          "description": "The build number of the package",
+          "minimum": 0,
+          "title": "Build Number",
+          "type": "integer"
+        },
+        "subdir": {
+          "description": "The subdirectory of the package",
+          "minLength": 1,
+          "title": "Subdir",
+          "type": "string"
+        },
+        "depends": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The dependencies of the package",
+          "title": "Depends"
+        },
+        "constrains": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional run constraints that apply to the package",
+          "title": "Constrains"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The license of the package",
+          "title": "License"
+        },
+        "license_family": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The license family of the package",
+          "title": "License Family"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "build",
+        "subdir"
+      ],
+      "title": "CondaPackageMetadata",
+      "type": "object"
+    },
+    "FrontendCapabilities": {
+      "properties": {},
+      "title": "FrontendCapabilities",
+      "type": "object"
+    },
+    "InitializeParams": {
+      "description": "The params send as part of the `initialize` rpc method. The expected result is of type `InitializeResult`.",
+      "properties": {
+        "source_dir": {
+          "description": "An absolute path to the directory that contains the source files",
+          "format": "directory-path",
+          "title": "Source Dir",
+          "type": "string"
+        },
+        "capabilities": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FrontendCapabilities"
+            }
+          ],
+          "description": "Capabilities provided by the frontend"
+        }
+      },
+      "required": [
+        "source_dir",
+        "capabilities"
+      ],
+      "title": "InitializeParams",
+      "type": "object"
+    },
+    "InitializeResult": {
+      "description": "The result of the `initialize` rpc method.",
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/BackendCapabilities"
+        }
+      },
+      "required": [
+        "capabilities"
+      ],
+      "title": "InitializeResult",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/InitializeParams"
+    },
+    {
+      "$ref": "#/$defs/InitializeResult"
+    },
+    {
+      "$ref": "#/$defs/CondaMetadataParams"
+    },
+    {
+      "$ref": "#/$defs/CondaMetadataResult"
+    }
+  ]
+}

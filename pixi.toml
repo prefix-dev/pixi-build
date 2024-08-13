@@ -46,5 +46,15 @@ pytest = ">=8.3.2,<9"
 [feature.test.tasks]
 integration-test = { cmd = "pytest tests", depends-on = "build" }
 
+[feature.schema.dependencies] 
+pydantic = ">=2.8.2,<3"
+ruff = ">=0.5.7,<0.6"
+
+[feature.schema.tasks]
+generate-schema = "python schema/model.py > schema/schema.json"
+fmt-schema = "ruff format schema"
+lint-schema = "ruff check schema --fix"
+
 [environments]
 test = ["test"]
+schema = { no-default-feature = true, features = ["schema"] }
