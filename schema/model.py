@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import json
-from typing import List, Union
+from typing import Annotated, List, Union
 from pydantic import (
     BaseModel,
     Field,
     TypeAdapter,
     DirectoryPath,
+    UrlConstraints,
     constr,
     NonNegativeInt,
+    AnyHttpUrl
 )
+from pydantic_core import Url
 
 NonEmptyStr = constr(min_length=1)
 
 Platform = NonEmptyStr
+
+CondaUrl = Annotated[Url, UrlConstraints(allowed_schemes=['http', 'https', 'file'])]
 
 # TODO: Add regex maybe?
 PackageName = NonEmptyStr
@@ -36,7 +41,7 @@ class FrontendCapabilities(BaseModel):
 
 class InitializeParams(BaseModel):
     """
-    The params send as part of the `initialize` rpc method. The expected result is of type `InitializeResult`.
+    The params send as part  of the `initialize` rpc method. The expected result is of type `InitializeResult`.
     """
 
     source_dir: DirectoryPath = Field(
@@ -67,6 +72,7 @@ class CondaMetadataParams(BaseModel):
         None,
         description="The target platform, or the current platform if not specified",
     )
+    channel_base_urls: List[CondaUrl] = Field(None, description="Urls of channels to use for any resolution.")
 
 
 class CondaPackageMetadata(BaseModel):

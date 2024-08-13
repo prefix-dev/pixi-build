@@ -34,6 +34,17 @@
           "default": null,
           "description": "The target platform, or the current platform if not specified",
           "title": "Target Platform"
+        },
+        "channels": {
+          "default": null,
+          "description": "Urls of channels to use for any resolution.",
+          "items": {
+            "format": "uri",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
         }
       },
       "title": "CondaMetadataParams",
@@ -166,7 +177,7 @@
       "type": "object"
     },
     "InitializeParams": {
-      "description": "The params send as part of the `initialize` rpc method. The expected result is of type `InitializeResult`.",
+      "description": "The params send as part  of the `initialize` rpc method. The expected result is of type `InitializeResult`.",
       "properties": {
         "source_dir": {
           "description": "An absolute path to the directory that contains the source files",
