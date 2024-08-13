@@ -44,7 +44,7 @@ class InitializeParams(BaseModel):
     The params send as part  of the `initialize` rpc method. The expected result is of type `InitializeResult`.
     """
 
-    source_dir: DirectoryPath = Field(
+    sourceDir: DirectoryPath = Field(
         ...,
         description="An absolute path to the directory that contains the source files",
     )
@@ -68,18 +68,18 @@ class InitializeResult(BaseModel):
 # This is used to determine metadata of the conda packages in the source directory.
 # =============================================
 class CondaMetadataParams(BaseModel):
-    target_platform: Platform | None = Field(
+    targetPlatform: Platform | None = Field(
         None,
         description="The target platform, or the current platform if not specified",
     )
-    channel_base_urls: List[CondaUrl] = Field(None, description="Urls of channels to use for any resolution.")
+    channelBaseUrls: List[CondaUrl] = Field(None, description="Urls of channels to use for any resolution.")
 
 
 class CondaPackageMetadata(BaseModel):
     name: PackageName = Field(..., description="The name of the package")
     version: Version = Field(..., description="The version of the package")
     build: NonEmptyStr = Field(..., description="The build string of the package")
-    build_number: NonNegativeInt = Field(
+    buildNumber: NonNegativeInt = Field(
         0, description="The build number of the package"
     )
     subdir: Platform = Field(..., description="The subdirectory of the package")
@@ -90,7 +90,7 @@ class CondaPackageMetadata(BaseModel):
         None, description="Additional run constraints that apply to the package"
     )
     license: NonEmptyStr | None = Field(None, description="The license of the package")
-    license_family: NonEmptyStr | None = Field(
+    licenseFamily: NonEmptyStr | None = Field(
         None, description="The license family of the package"
     )
 

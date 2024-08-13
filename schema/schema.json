@@ -21,7 +21,7 @@
     },
     "CondaMetadataParams": {
       "properties": {
-        "target_platform": {
+        "targetPlatform": {
           "anyOf": [
             {
               "minLength": 1,
@@ -33,9 +33,9 @@
           ],
           "default": null,
           "description": "The target platform, or the current platform if not specified",
-          "title": "Target Platform"
+          "title": "Targetplatform"
         },
-        "channels": {
+        "channelBaseUrls": {
           "default": null,
           "description": "Urls of channels to use for any resolution.",
           "items": {
@@ -43,7 +43,7 @@
             "minLength": 1,
             "type": "string"
           },
-          "title": "Channels",
+          "title": "Channelbaseurls",
           "type": "array"
         }
       },
@@ -86,11 +86,11 @@
           "title": "Build",
           "type": "string"
         },
-        "build_number": {
+        "buildNumber": {
           "default": 0,
           "description": "The build number of the package",
           "minimum": 0,
-          "title": "Build Number",
+          "title": "Buildnumber",
           "type": "integer"
         },
         "subdir": {
@@ -147,7 +147,7 @@
           "description": "The license of the package",
           "title": "License"
         },
-        "license_family": {
+        "licenseFamily": {
           "anyOf": [
             {
               "minLength": 1,
@@ -159,7 +159,7 @@
           ],
           "default": null,
           "description": "The license family of the package",
-          "title": "License Family"
+          "title": "Licensefamily"
         }
       },
       "required": [
@@ -179,10 +179,10 @@
     "InitializeParams": {
       "description": "The params send as part  of the `initialize` rpc method. The expected result is of type `InitializeResult`.",
       "properties": {
-        "source_dir": {
+        "sourceDir": {
           "description": "An absolute path to the directory that contains the source files",
           "format": "directory-path",
-          "title": "Source Dir",
+          "title": "Sourcedir",
           "type": "string"
         },
         "capabilities": {
@@ -195,7 +195,7 @@
         }
       },
       "required": [
-        "source_dir",
+        "sourceDir",
         "capabilities"
       ],
       "title": "InitializeParams",
