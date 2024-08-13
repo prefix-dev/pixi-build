@@ -86,14 +86,19 @@ struct BuildServer {
 }
 
 impl BuildServer {
-    pub fn new(source_dir: &Path) -> miette::Result<Self> {
+    pub fn new(manifest_path: &Path) -> miette::Result<Self> {
         // Load the manifest from the source directory
-        let manifest = Manifest::from_path(&source_dir)
-            .with_context(|| format!("failed to parse manifest from {}", source_dir.display()))?;
+        let manifest = Manifest::from_path(&manifest_path).with_context(|| {
+            format!("failed to parse manifest from {}", manifest_path.display())
+        })?;
+        let manifest_root = manifest_path
+            .parent()
+            .expect("the project manifest must reside in a directory")
+            .to_path_buf();
 
         Ok(Self {
             manifest,
-            manifest_root: source_dir.to_path_buf(),
+            manifest_root,
         })
     }
 }
@@ -112,7 +117,7 @@ async fn run_server(port: Option<u16>) -> miette::Result<()> {
         }
 
         *build_server = Some(
-            BuildServer::new(&params.source_dir)
+            BuildServer::new(&params.manifest_path)
                 .map_err(|e| Error::invalid_params(e.to_string()))?,
         );
 
