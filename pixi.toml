@@ -37,7 +37,7 @@ run = { cmd = "cargo run", inputs = [
     "target/debug/**",
 ] }
 [dependencies]
-rust = ">=1.80.0,<2"
+rust = "~=1.80.1"
 python = ">=3.12.4,<4"
 
 [feature.test.dependencies]

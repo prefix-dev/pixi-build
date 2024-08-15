@@ -24,7 +24,7 @@ jsonrpc-stdio-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-core = "18.0.0"
 
-rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "chore/bump_rattler", default-features = false }
+rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "refactor/no_default_build_string", default-features = false }
 rattler_conda_types = "0.27.1"
 rattler_package_streaming = "0.22.1"
 
