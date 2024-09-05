@@ -24,9 +24,9 @@ jsonrpc-stdio-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-core = "18.0.0"
 
-rattler-build = { git = "https://github.com/prefix-dev/rattler-build", branch = "main", default-features = false }
-rattler_conda_types = "0.27.4"
-rattler_package_streaming = "0.22.5"
+rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "refactor/seperate_solve", default-features = false }
+rattler_conda_types = "0.27.5"
+rattler_package_streaming = "0.22.6"
 
 pixi_build_types = { path="../pixi-build-branch/crates/pixi_build_types" }
 pixi_consts = { path="../pixi-build-branch/crates/pixi_consts" }

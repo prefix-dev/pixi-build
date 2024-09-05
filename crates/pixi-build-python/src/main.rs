@@ -37,27 +37,26 @@ use rattler_build::{
         Recipe,
     },
     render::resolved_dependencies::DependencyInfo,
-    tool_configuration::{Configuration, SkipExisting},
+    tool_configuration::Configuration,
 };
 use rattler_conda_types::{
-    package::ArchiveType, ChannelConfig, MatchSpec, NoArchType, PackageName, Platform,
+    package::ArchiveType, ChannelConfig, MatchSpec, NoArchType, PackageName, Platform, Version,
     VersionWithSource,
 };
 use rattler_package_streaming::write::CompressionLevel;
-use reqwest::{Client, Url};
+use reqwest::Url;
 use tempfile::tempdir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[allow(missing_docs)]
 #[derive(Parser)]
-#[clap(version)]
 pub struct App {
     #[clap(subcommand)]
     command: Option<Commands>,
 
     /// The port to expose the json-rpc server on. If not specified will
     /// communicate with stdin/stdout.
-    #[clap(long, conflicts_with = "command")]
+    #[clap(long)]
     http_port: Option<u16>,
 
     /// Enable verbose logging.
@@ -309,7 +308,7 @@ async fn get_conda_metadata_from_manifest(
                 .collect(),
             license: output.recipe.about.license.map(|l| l.to_string()),
             license_family: output.recipe.about.license_family,
-            noarch: output.recipe.build.noarch
+            noarch: output.recipe.build.noarch,
         }],
     })
 }
@@ -363,18 +362,10 @@ fn get_tool_configuration(
     logging_output_handler: LoggingOutputHandler,
     channel_config: &ChannelConfig,
 ) -> miette::Result<Configuration> {
-    Ok(Configuration {
-        fancy_log_handler: logging_output_handler,
-        client: reqwest_middleware::ClientWithMiddleware::from(Client::default()),
-        no_clean: false,
-        no_test: false,
-        use_zstd: true,
-        use_bz2: true,
-        render_only: false,
-        skip_existing: SkipExisting::None,
-        channel_config: channel_config.clone(),
-        compression_threads: None,
-    })
+    Ok(Configuration::builder()
+        .with_logging_output_handler(logging_output_handler)
+        .with_channel_config(channel_config.clone())
+        .finish())
 }
 
 async fn manifest_to_build_configuration(
@@ -447,10 +438,14 @@ fn manifest_to_recipe(
     };
     let name = PackageName::from_str(&name).into_diagnostic()?;
 
-    // Parse the package version from the manifest
-    let Some(version) = manifest.parsed.project.version.clone() else {
-        miette::bail!("a 'version' field is required in the project manifest");
-    };
+    // Parse the package version from the manifest. The version is optional, so we
+    // default to "0dev0" if it is not present.
+    let version = manifest
+        .parsed
+        .project
+        .version
+        .clone()
+        .unwrap_or_else(|| Version::from_str("0dev0").unwrap());
 
     // TODO: NoArchType???
     let noarch_type = NoArchType::python();
