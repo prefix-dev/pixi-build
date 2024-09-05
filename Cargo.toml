@@ -24,11 +24,11 @@ jsonrpc-stdio-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-core = "18.0.0"
 
-rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "refactor/no_default_build_string", default-features = false }
-rattler_conda_types = "0.27.1"
-rattler_package_streaming = "0.22.1"
+rattler-build = { git = "https://github.com/prefix-dev/rattler-build", branch = "main", default-features = false }
+rattler_conda_types = "0.27.4"
+rattler_package_streaming = "0.22.5"
 
-pixi_build_types = { git = "https://github.com/tdejager/pixi", branch = "feat/pixi-build-frontend" }
-pixi_consts = { git = "https://github.com/tdejager/pixi", branch = "feat/pixi-build-frontend" }
-pixi_manifest = { git = "https://github.com/tdejager/pixi", branch = "feat/pixi-build-frontend" }
-pixi_spec = { git = "https://github.com/tdejager/pixi", branch = "feat/pixi-build-frontend" }
+pixi_build_types = { path="../pixi-build-branch/crates/pixi_build_types" }
+pixi_consts = { path="../pixi-build-branch/crates/pixi_consts" }
+pixi_manifest = { path="../pixi-build-branch/crates/pixi_manifest" }
+pixi_spec = { path="../pixi-build-branch/crates/pixi_spec" }

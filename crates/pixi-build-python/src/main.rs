@@ -268,6 +268,7 @@ async fn get_conda_metadata_from_manifest(
         finalized_sources: None,
         build_summary: Arc::default(),
         system_tools: Default::default(),
+        extra_meta: None,
     };
     let tool_config = get_tool_configuration(logging_output_handler, &channel_config)?;
 
@@ -290,28 +291,25 @@ async fn get_conda_metadata_from_manifest(
     Ok(CondaMetadataResult {
         packages: vec![CondaPackageMetadata {
             name: output.name().clone(),
-            version: output.version().clone(),
+            version: output.version().clone().into(),
             build: output.build_string().into_owned(),
             build_number: output.recipe.build.number,
             subdir: output.build_configuration.target_platform,
-            depends: Some(
-                finalized_deps
-                    .depends
-                    .iter()
-                    .map(DependencyInfo::spec)
-                    .cloned()
-                    .collect(),
-            ),
-            constrains: Some(
-                finalized_deps
-                    .constraints
-                    .iter()
-                    .map(DependencyInfo::spec)
-                    .cloned()
-                    .collect(),
-            ),
+            depends: finalized_deps
+                .depends
+                .iter()
+                .map(DependencyInfo::spec)
+                .cloned()
+                .collect(),
+            constraints: finalized_deps
+                .constraints
+                .iter()
+                .map(DependencyInfo::spec)
+                .cloned()
+                .collect(),
             license: output.recipe.about.license.map(|l| l.to_string()),
             license_family: output.recipe.about.license_family,
+            noarch: output.recipe.build.noarch
         }],
     })
 }
@@ -348,6 +346,7 @@ async fn build_manifest(
         finalized_sources: None,
         build_summary: Arc::default(),
         system_tools: Default::default(),
+        extra_meta: None,
     };
     let tool_config = get_tool_configuration(logging_output_handler, &channel_config)?;
 
@@ -480,7 +479,7 @@ fn manifest_to_recipe(
         })],
         build: Build {
             number: build_number,
-            string: None,
+            string: Default::default(),
 
             // skip: Default::default(),
             script: ScriptContent::Commands(
