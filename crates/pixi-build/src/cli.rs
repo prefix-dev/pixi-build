@@ -1,10 +1,3 @@
-mod consts;
-mod logging;
-mod protocol;
-mod python;
-mod server;
-mod temporary_recipe;
-
 use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
@@ -14,16 +7,17 @@ use pixi_build_types::{
     procedures::{
         conda_build::{CondaBuildParams, CondaOutputIdentifier},
         conda_metadata::{CondaMetadataParams, CondaMetadataResult},
+        initialize::InitializeParams,
     },
-    ChannelConfiguration,
+    ChannelConfiguration, FrontendCapabilities,
 };
 use rattler_build::console_utils::{get_default_env_filter, LoggingOutputHandler};
 use rattler_conda_types::ChannelConfig;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
+    consts,
     protocol::{Protocol, ProtocolFactory},
-    python::PythonBuildBackend,
     server::Server,
 };
 
@@ -50,18 +44,10 @@ pub enum Commands {
         #[clap(env, long, env = "PIXI_PROJECT_MANIFEST", default_value = consts::PROJECT_MANIFEST)]
         manifest_path: PathBuf,
     },
-    Build {
+    CondaBuild {
         #[clap(env, long, env = "PIXI_PROJECT_MANIFEST", default_value = consts::PROJECT_MANIFEST)]
         manifest_path: PathBuf,
     },
-}
-
-#[tokio::main]
-pub async fn main() {
-    if let Err(err) = actual_main().await {
-        eprintln!("{err:?}");
-        std::process::exit(1);
-    }
 }
 
 async fn run_server<T: ProtocolFactory>(port: Option<u16>, protocol: T) -> miette::Result<()> {
@@ -73,7 +59,9 @@ async fn run_server<T: ProtocolFactory>(port: Option<u16>, protocol: T) -> miett
     }
 }
 
-async fn actual_main() -> miette::Result<()> {
+pub async fn main<T: ProtocolFactory, F: FnOnce(LoggingOutputHandler) -> T>(
+    factory: F,
+) -> miette::Result<()> {
     let args = App::parse();
 
     // Setup logging
@@ -82,11 +70,13 @@ async fn actual_main() -> miette::Result<()> {
         .with(get_default_env_filter(args.verbose.log_level_filter()).into_diagnostic()?);
     registry.with(log_handler.clone()).init();
 
+    let factory = factory(log_handler);
+
     match args.command {
-        None => run_server(args.http_port, PythonBuildBackend::factory(log_handler)).await,
-        Some(Commands::Build { manifest_path }) => build(log_handler, &manifest_path).await,
+        None => run_server(args.http_port, factory).await,
+        Some(Commands::CondaBuild { manifest_path }) => build(factory, &manifest_path).await,
         Some(Commands::GetCondaMetadata { manifest_path }) => {
-            let metadata = get_conda_metadata(log_handler, &manifest_path).await?;
+            let metadata = get_conda_metadata(factory, &manifest_path).await?;
             println!("{}", serde_yaml::to_string(&metadata).unwrap());
             Ok(())
         }
@@ -94,7 +84,7 @@ async fn actual_main() -> miette::Result<()> {
 }
 
 async fn get_conda_metadata(
-    logging_output_handler: LoggingOutputHandler,
+    factory: impl ProtocolFactory,
     manifest_path: &Path,
 ) -> miette::Result<CondaMetadataResult> {
     let channel_config = ChannelConfig::default_with_root_dir(
@@ -104,8 +94,14 @@ async fn get_conda_metadata(
             .to_path_buf(),
     );
 
-    let backend = PythonBuildBackend::new(manifest_path, logging_output_handler)?;
-    backend
+    let (protocol, _initialize_result) = factory
+        .initialize(InitializeParams {
+            manifest_path: manifest_path.to_path_buf(),
+            capabilities: FrontendCapabilities {},
+        })
+        .await?;
+
+    protocol
         .get_conda_metadata(CondaMetadataParams {
             target_platform: None,
             channel_base_urls: None,
@@ -116,10 +112,7 @@ async fn get_conda_metadata(
         .await
 }
 
-async fn build(
-    logging_output_handler: LoggingOutputHandler,
-    manifest_path: &Path,
-) -> miette::Result<()> {
+async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::Result<()> {
     let channel_config = ChannelConfig::default_with_root_dir(
         manifest_path
             .parent()
@@ -127,8 +120,14 @@ async fn build(
             .to_path_buf(),
     );
 
-    let backend = PythonBuildBackend::new(manifest_path, logging_output_handler)?;
-    let result = backend
+    let (protocol, _initialize_result) = factory
+        .initialize(InitializeParams {
+            manifest_path: manifest_path.to_path_buf(),
+            capabilities: FrontendCapabilities {},
+        })
+        .await?;
+
+    let result = protocol
         .build_conda(CondaBuildParams {
             target_platform: None,
             channel_base_urls: None,

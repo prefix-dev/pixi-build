@@ -1,5 +1,5 @@
 [package]
-name = "pixi-build-python"
+name = "pixi-build-backend"
 version = "0.1.0"
 edition.workspace = true
 
@@ -24,6 +24,8 @@ tempfile = { workspace = true }
 clap-verbosity-flag = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde_yaml = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+minijinja = { workspace = true }
 
 parking_lot = { workspace = true }
 

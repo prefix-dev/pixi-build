@@ -1,0 +1,12 @@
+{% set PYTHON="%PYTHON%" if build_platform == "windows" else "$PYTHON" -%}
+{% set SRC_DIR="%SRC_DIR%" if build_platform == "windows" else "$SRC_DIR" -%}
+
+{% if installer == "uv" -%}
+uv pip install --python {{ PYTHON }} -vv --no-deps --no-build-isolation {{ SRC_DIR }}
+{% else %}
+{{ PYTHON }} -m pip install -vv --ignore-installed --no-deps --no-build-isolation {{ SRC_DIR }}
+{% endif -%}
+
+{% if build_platform == "windows" -%}
+if errorlevel 1 exit 1
+{% endif %}

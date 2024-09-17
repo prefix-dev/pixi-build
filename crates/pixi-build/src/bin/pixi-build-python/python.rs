@@ -2,18 +2,20 @@ use std::{collections::BTreeMap, path::Path, str::FromStr, sync::Arc};
 
 use chrono::Utc;
 use miette::{Context, IntoDiagnostic};
-use pixi_build_types::procedures::conda_build::CondaBuildParams;
-use pixi_build_types::procedures::conda_metadata::{CondaMetadataParams, CondaMetadataResult};
+use pixi_build_backend::{
+    protocol::{Protocol, ProtocolFactory},
+    utils::TemporaryRenderedRecipe,
+};
 use pixi_build_types::{
     procedures::{
-        conda_build::CondaBuildResult,
+        conda_build::{CondaBuildParams, CondaBuildResult},
+        conda_metadata::{CondaMetadataParams, CondaMetadataResult},
         initialize::{InitializeParams, InitializeResult},
     },
     BackendCapabilities, CondaPackageMetadata, FrontendCapabilities,
 };
 use pixi_manifest::{Dependencies, Manifest, SpecType};
 use pixi_spec::PixiSpec;
-use rattler_build::render::resolved_dependencies::DependencyInfo;
 use rattler_build::{
     build::run_build,
     console_utils::LoggingOutputHandler,
@@ -23,6 +25,7 @@ use rattler_build::{
         parser::{Build, Dependency, Package, PathSource, Requirements, ScriptContent, Source},
         Recipe,
     },
+    render::resolved_dependencies::DependencyInfo,
     tool_configuration::Configuration,
 };
 use rattler_conda_types::{
@@ -32,10 +35,7 @@ use rattler_package_streaming::write::CompressionLevel;
 use reqwest::Url;
 use tempfile::tempdir;
 
-use crate::{
-    protocol::{Protocol, ProtocolFactory},
-    temporary_recipe::TemporaryRenderedRecipe,
-};
+use crate::build_script::{BuildPlatform, BuildScriptContext, Installer};
 
 pub struct PythonBuildBackend {
     logging_output_handler: LoggingOutputHandler,
@@ -103,7 +103,7 @@ impl PythonBuildBackend {
 
     /// Returns the requirements of the project that should be used for a
     /// recipe.
-    fn requirements(&self, channel_config: &ChannelConfig) -> Requirements {
+    fn requirements(&self, channel_config: &ChannelConfig) -> (Requirements, Installer) {
         fn dependencies_into_matchspecs(
             deps: Dependencies<PackageName, PixiSpec>,
             channel_config: &ChannelConfig,
@@ -137,8 +137,18 @@ impl PythonBuildBackend {
                 .filter_map(|f| f.dependencies(Some(SpecType::Build), None)),
         );
 
+        // Determine the installer to use
+        let installer = if host_dependencies.contains_key("uv")
+            || run_dependencies.contains_key("uv")
+            || build_dependencies.contains_key("uv")
+        {
+            Installer::Uv
+        } else {
+            Installer::Pip
+        };
+
         // Ensure python and pip are available in the host dependencies section.
-        for pkg_name in ["pip", "python"] {
+        for pkg_name in [installer.package_name(), "python"] {
             if host_dependencies.contains_key(pkg_name) {
                 // If the host dependencies already contain the package, we don't need to add it
                 // again.
@@ -171,7 +181,7 @@ impl PythonBuildBackend {
             .map(Dependency::Spec)
             .collect();
 
-        requirements
+        (requirements, installer)
     }
 
     /// Constructs a [`Recipe`] from the current manifest.
@@ -202,9 +212,19 @@ impl PythonBuildBackend {
         let noarch_type = NoArchType::python();
 
         // TODO: Read from config / project.
-        let requirements = self.requirements(channel_config);
+        let (requirements, installer) = self.requirements(channel_config);
         let build_platform = Platform::current();
         let build_number = 0;
+
+        let build_script = BuildScriptContext {
+            installer,
+            build_platform: if build_platform.is_windows() {
+                BuildPlatform::Windows
+            } else {
+                BuildPlatform::Unix
+            },
+        }
+        .render();
 
         Ok(Recipe {
             schema_version: 1,
@@ -228,15 +248,7 @@ impl PythonBuildBackend {
                 string: Default::default(),
 
                 // skip: Default::default(),
-                script: ScriptContent::Commands(
-                    if build_platform.is_windows() {
-                        vec![
-                            "%PYTHON% -m pip install --ignore-installed --no-deps --no-build-isolation . -vv".to_string(),
-                            "if errorlevel 1 exit 1".to_string()]
-                    } else {
-                        vec!["$PYTHON -m pip install --ignore-installed --no-deps --no-build-isolation . -vv".to_string()]
-                    })
-                    .into(),
+                script: ScriptContent::Commands(build_script).into(),
                 noarch: noarch_type,
 
                 // TODO: Python is not exposed properly
