@@ -4,6 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
+async-trait = { workspace = true }
+
 pixi_build_types = { workspace = true }
 pixi_consts = { workspace = true }
 pixi_manifest = { workspace = true }
