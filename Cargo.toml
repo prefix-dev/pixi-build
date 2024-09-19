@@ -31,7 +31,13 @@ rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch =
 rattler_conda_types = "0.27.5"
 rattler_package_streaming = "0.22.6"
 
-pixi_build_types = { path = "../pixi-build-branch/crates/pixi_build_types" }
-pixi_consts = { path = "../pixi-build-branch/crates/pixi_consts" }
-pixi_manifest = { path = "../pixi-build-branch/crates/pixi_manifest" }
-pixi_spec = { path = "../pixi-build-branch/crates/pixi_spec" }
+# pixi_build_types = { path = "../pixi-build-branch/crates/pixi_build_types" }
+# pixi_consts = { path = "../pixi-build-branch/crates/pixi_consts" }
+# pixi_manifest = { path = "../pixi-build-branch/crates/pixi_manifest" }
+# pixi_spec = { path = "../pixi-build-branch/crates/pixi_spec" }
+
+pixi_build_types = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_consts = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_manifest = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_spec = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+
