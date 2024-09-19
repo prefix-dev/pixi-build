@@ -322,7 +322,7 @@ impl PythonBuildBackend {
                 ArchiveType::Conda,
                 CompressionLevel::default(),
             ),
-            store_recipe: true,
+            store_recipe: false,
             force_colors: true,
         })
     }
