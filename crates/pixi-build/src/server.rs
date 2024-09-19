@@ -100,7 +100,7 @@ impl<T: ProtocolFactory> Server<T> {
 
         let conda_build = state.clone();
         io.add_method(
-            procedures::conda_metadata::METHOD_NAME,
+            procedures::conda_build::METHOD_NAME,
             move |params: Params| {
                 let state = conda_build.clone();
 
