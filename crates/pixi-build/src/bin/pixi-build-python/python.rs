@@ -335,28 +335,33 @@ impl PythonBuildBackend {
 /// However, lets take everything in the directory as input for now
 fn input_globs() -> Vec<String> {
     vec![
+        // Source files
         "**/*.py",
         "**/*.pyx",
-        "setup.py",
-        "setup.cfg",
-        "pyproject.toml",
-        "tox.ini",
         "**/*.c",
         "**/*.cpp",
-        "Makefile",
         "**/*.sh",
-        "MANIFEST.in",
-        "requirements*.txt",
-        "Pipfile",
-        "Pipfile.lock",
-        "poetry.lock",
+        // Common data files
         "**/*.json",
         "**/*.yaml",
         "**/*.yml",
         "**/*.txt",
+        // Project configuration
+        "setup.py",
+        "setup.cfg",
+        "pyproject.toml",
+        "requirements*.txt",
+        "Pipfile",
+        "Pipfile.lock",
+        "poetry.lock",
+        "tox.ini",
+        // Build configuration
+        "Makefile",
+        "MANIFEST.in",
         "tests/**/*.py",
         "docs/**/*.rst",
         "docs/**/*.md",
+        // Versioning
         "VERSION",
         "version.py",
     ]
