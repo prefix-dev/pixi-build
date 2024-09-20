@@ -1,3 +1,4 @@
+#!/bin/bash
 cargo metadata --no-deps --format-version=1 \
 | jq -r '.packages[] | .name as $pname | .targets[] | [$pname, .kind[], .name] | @tsv' \
 | while IFS=$'\t' read -r package kind name; do
