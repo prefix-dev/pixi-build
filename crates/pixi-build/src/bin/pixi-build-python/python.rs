@@ -328,6 +328,48 @@ impl PythonBuildBackend {
     }
 }
 
+/// Determines the build input globs for given python package
+/// even this will be probably backend specific, e.g setuptools
+/// has a different way of determining the input globs than hatch etc.
+///
+/// However, lets take everything in the directory as input for now
+fn input_globs() -> Vec<String> {
+    vec![
+        // Source files
+        "**/*.py",
+        "**/*.pyx",
+        "**/*.c",
+        "**/*.cpp",
+        "**/*.sh",
+        // Common data files
+        "**/*.json",
+        "**/*.yaml",
+        "**/*.yml",
+        "**/*.txt",
+        // Project configuration
+        "setup.py",
+        "setup.cfg",
+        "pyproject.toml",
+        "requirements*.txt",
+        "Pipfile",
+        "Pipfile.lock",
+        "poetry.lock",
+        "tox.ini",
+        // Build configuration
+        "Makefile",
+        "MANIFEST.in",
+        "tests/**/*.py",
+        "docs/**/*.rst",
+        "docs/**/*.md",
+        // Versioning
+        "VERSION",
+        "version.py",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
+}
+
 #[async_trait::async_trait]
 impl Protocol for PythonBuildBackend {
     async fn get_conda_metadata(
@@ -431,7 +473,10 @@ impl Protocol for PythonBuildBackend {
             .within_context_async(move || async move { run_build(output, &tool_config).await })
             .await?;
 
-        Ok(CondaBuildResult { path: package })
+        Ok(CondaBuildResult {
+            output_file: package,
+            input_globs: input_globs(),
+        })
     }
 }
 

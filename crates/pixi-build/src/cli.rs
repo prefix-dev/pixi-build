@@ -138,7 +138,11 @@ async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::R
         })
         .await?;
 
-    eprintln!("Successfully build '{}'", result.path.display());
+    eprintln!("Successfully build '{}'", result.output_file.display());
+    eprintln!("Use following globs to revalidate: ");
+    for glob in result.input_globs {
+        eprintln!("  - {}", glob);
+    }
 
     Ok(())
 }
