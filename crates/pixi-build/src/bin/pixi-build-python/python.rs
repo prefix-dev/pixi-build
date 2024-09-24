@@ -440,6 +440,7 @@ impl Protocol for PythonBuildBackend {
                 license_family: output.recipe.about.license_family,
                 noarch: output.recipe.build.noarch,
             }],
+            input_globs: None,
         })
     }
 
