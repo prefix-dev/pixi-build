@@ -1088,7 +1088,7 @@ dependencies = [
 [[package]]
 name = "fancy_display"
 version = "0.1.0"
-source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#3a417780022a14b64223844d4fb1e18254a2a5d2"
+source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#5f6359782f6bf93f92191e0e936225112722fd2a"
 dependencies = [
  "console",
 ]
@@ -2955,7 +2955,7 @@ dependencies = [
 [[package]]
 name = "pixi_build_types"
 version = "0.1.0"
-source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#3a417780022a14b64223844d4fb1e18254a2a5d2"
+source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#5f6359782f6bf93f92191e0e936225112722fd2a"
 dependencies = [
  "rattler_conda_types",
  "rattler_digest",
@@ -2967,7 +2967,7 @@ dependencies = [
 [[package]]
 name = "pixi_consts"
 version = "0.1.0"
-source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#3a417780022a14b64223844d4fb1e18254a2a5d2"
+source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#5f6359782f6bf93f92191e0e936225112722fd2a"
 dependencies = [
  "console",
  "lazy_static",
@@ -2978,7 +2978,7 @@ dependencies = [
 [[package]]
 name = "pixi_manifest"
 version = "0.1.0"
-source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#3a417780022a14b64223844d4fb1e18254a2a5d2"
+source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#5f6359782f6bf93f92191e0e936225112722fd2a"
 dependencies = [
  "console",
  "dunce",
@@ -3011,7 +3011,7 @@ dependencies = [
 [[package]]
 name = "pixi_spec"
 version = "0.1.0"
-source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#3a417780022a14b64223844d4fb1e18254a2a5d2"
+source = "git+https://github.com/prefix-dev/pixi?branch=feature/pixi-build#5f6359782f6bf93f92191e0e936225112722fd2a"
 dependencies = [
  "dirs",
  "dunce",

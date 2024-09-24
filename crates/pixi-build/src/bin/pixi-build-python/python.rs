@@ -8,7 +8,7 @@ use pixi_build_backend::{
 };
 use pixi_build_types::{
     procedures::{
-        conda_build::{CondaBuildParams, CondaBuildResult},
+        conda_build::{CondaBuildParams, CondaBuildResult, CondaBuiltPackage},
         conda_metadata::{CondaMetadataParams, CondaMetadataResult},
         initialize::{InitializeParams, InitializeResult},
     },
@@ -470,13 +470,19 @@ impl Protocol for PythonBuildBackend {
             .finish();
 
         let temp_recipe = TemporaryRenderedRecipe::from_output(&output)?;
-        let (_output, package) = temp_recipe
+        let (output, package) = temp_recipe
             .within_context_async(move || async move { run_build(output, &tool_config).await })
             .await?;
 
         Ok(CondaBuildResult {
-            output_file: package,
-            input_globs: input_globs(),
+            packages: vec![CondaBuiltPackage {
+                output_file: package,
+                input_globs: input_globs(),
+                name: output.name().as_normalized().to_string(),
+                version: output.version().to_string(),
+                build: output.build_string().into_owned(),
+                subdir: output.target_platform().to_string(),
+            }],
         })
     }
 }

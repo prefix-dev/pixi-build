@@ -5,7 +5,7 @@ use clap_verbosity_flag::{InfoLevel, Verbosity};
 use miette::IntoDiagnostic;
 use pixi_build_types::{
     procedures::{
-        conda_build::{CondaBuildParams, CondaOutputIdentifier},
+        conda_build::CondaBuildParams,
         conda_metadata::{CondaMetadataParams, CondaMetadataResult},
         initialize::InitializeParams,
     },
@@ -134,14 +134,16 @@ async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::R
             channel_configuration: ChannelConfiguration {
                 base_url: channel_config.channel_alias,
             },
-            output: CondaOutputIdentifier::default(),
+            outputs: None,
         })
         .await?;
 
-    eprintln!("Successfully build '{}'", result.output_file.display());
-    eprintln!("Use following globs to revalidate: ");
-    for glob in result.input_globs {
-        eprintln!("  - {}", glob);
+    for package in result.packages {
+        eprintln!("Successfully build '{}'", package.output_file.display());
+        eprintln!("Use following globs to revalidate: ");
+        for glob in package.input_globs {
+            eprintln!("  - {}", glob);
+        }
     }
 
     Ok(())
