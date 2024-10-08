@@ -26,6 +26,7 @@ tracing-subscriber = { workspace = true }
 serde_yaml = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 minijinja = { workspace = true }
+itertools = { workspace = true }
 
 parking_lot = { workspace = true }
 

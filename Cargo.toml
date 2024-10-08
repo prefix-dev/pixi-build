@@ -7,7 +7,8 @@ edition = "2021"
 
 [workspace.dependencies]
 async-trait = "0.1.82"
-clap = "4.5.11"
+clap = "4.5.19"
+itertools = "0.13.0"
 
 chrono = "0.4.38"
 miette = "7.2.0"
@@ -27,9 +28,9 @@ jsonrpc-stdio-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-core = "18.0.0"
 
-rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "refactor/seperate_solve", default-features = false }
-rattler_conda_types = "0.27.5"
-rattler_package_streaming = "0.22.6"
+rattler-build = { git = "https://github.com/prefix-dev/rattler-build", branch = "main", default-features = false }
+rattler_conda_types = "0.28.2"
+rattler_package_streaming = "0.22.10"
 
 # pixi_build_types = { path = "../pixi-build-branch/crates/pixi_build_types" }
 # pixi_consts = { path = "../pixi-build-branch/crates/pixi_consts" }

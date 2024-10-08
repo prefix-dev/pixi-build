@@ -37,25 +37,28 @@ use rattler_package_streaming::write::CompressionLevel;
 use reqwest::Url;
 use tempfile::tempdir;
 
-use crate::build_script::{BuildPlatform, BuildScriptContext, Installer};
+use crate::{
+    build_script::{BuildPlatform, BuildScriptContext},
+    stub::default_compiler,
+};
 
-pub struct PythonBuildBackend {
+pub struct CMakeBuildBackend {
     logging_output_handler: LoggingOutputHandler,
     manifest: Manifest,
 }
 
-impl PythonBuildBackend {
-    /// Returns a new instance of [`PythonBuildBackendFactory`].
+impl CMakeBuildBackend {
+    /// Returns a new instance of [`CMakeBuildBackendFactory`].
     ///
     /// This type implements [`ProtocolFactory`] and can be used to initialize a
-    /// new [`PythonBuildBackend`].
-    pub fn factory(logging_output_handler: LoggingOutputHandler) -> PythonBuildBackendFactory {
-        PythonBuildBackendFactory {
+    /// new [`CMakeBuildBackend`].
+    pub fn factory(logging_output_handler: LoggingOutputHandler) -> CMakeBuildBackendFactory {
+        CMakeBuildBackendFactory {
             logging_output_handler,
         }
     }
 
-    /// Returns a new instance of [`PythonBuildBackend`] by reading the manifest
+    /// Returns a new instance of [`CMakeBuildBackend`] by reading the manifest
     /// at the given path.
     pub fn new(
         manifest_path: &Path,
@@ -88,8 +91,9 @@ impl PythonBuildBackend {
     /// recipe.
     fn requirements(
         &self,
+        target_platform: Platform,
         channel_config: &ChannelConfig,
-    ) -> miette::Result<(Requirements, Installer)> {
+    ) -> miette::Result<Requirements> {
         let mut requirements = Requirements::default();
         let default_features = [self.manifest.default_feature()];
 
@@ -97,31 +101,21 @@ impl PythonBuildBackend {
         let run_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Run), None)),
+                .filter_map(|f| f.dependencies(Some(SpecType::Run), Some(target_platform))),
         );
         let mut host_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Host), None)),
+                .filter_map(|f| f.dependencies(Some(SpecType::Host), Some(target_platform))),
         );
         let build_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Build), None)),
+                .filter_map(|f| f.dependencies(Some(SpecType::Build), Some(target_platform))),
         );
 
-        // Determine the installer to use
-        let installer = if host_dependencies.contains_key("uv")
-            || run_dependencies.contains_key("uv")
-            || build_dependencies.contains_key("uv")
-        {
-            Installer::Uv
-        } else {
-            Installer::Pip
-        };
-
-        // Ensure python and pip are available in the host dependencies section.
-        for pkg_name in [installer.package_name(), "python"] {
+        // Ensure build tools are available in the host dependencies section.
+        for pkg_name in ["cmake", "ninja"] {
             if host_dependencies.contains_key(pkg_name) {
                 // If the host dependencies already contain the package, we don't need to add it
                 // again.
@@ -160,11 +154,49 @@ impl PythonBuildBackend {
             .map(Dependency::Spec)
             .collect();
 
-        Ok((requirements, installer))
+        // Add compilers to the dependencies.
+        requirements.build.extend(
+            self.compiler_packages(target_platform)
+                .into_iter()
+                .map(Dependency::Spec),
+        );
+
+        Ok(requirements)
+    }
+
+    /// Returns the matchspecs for the compiler packages. That should be
+    /// included in the build section of the recipe.
+    fn compiler_packages(&self, target_platform: Platform) -> Vec<MatchSpec> {
+        let mut compilers = vec![];
+
+        for lang in self.languages() {
+            if let Some(name) = default_compiler(target_platform, &lang) {
+                // TODO: Read this from variants
+                // TODO: Read the version specification from variants
+                let compiler_package =
+                    PackageName::new_unchecked(format!("{name}_{target_platform}"));
+                compilers.push(MatchSpec::from(compiler_package));
+            }
+
+            // TODO: stdlib??
+        }
+
+        compilers
+    }
+
+    /// Returns the languages that are used in the cmake project. These define
+    /// which compilers are required to build the project.
+    fn languages(&self) -> Vec<String> {
+        // TODO: Can we figure this out from looking at the CMake?
+        vec!["cxx".to_string()]
     }
 
     /// Constructs a [`Recipe`] from the current manifest.
-    fn recipe(&self, channel_config: &ChannelConfig) -> miette::Result<Recipe> {
+    fn recipe(
+        &self,
+        target_platform: Platform,
+        channel_config: &ChannelConfig,
+    ) -> miette::Result<Recipe> {
         let manifest_root = self
             .manifest
             .path
@@ -178,16 +210,13 @@ impl PythonBuildBackend {
         let name = PackageName::from_str(&name).into_diagnostic()?;
         let version = self.manifest.version_or_default().clone();
 
-        // TODO: NoArchType???
-        let noarch_type = NoArchType::python();
+        let noarch_type = NoArchType::none();
 
-        // TODO: Read from config / project.
-        let (requirements, installer) = self.requirements(channel_config)?;
+        let requirements = self.requirements(target_platform, channel_config)?;
         let build_platform = Platform::current();
         let build_number = 0;
 
         let build_script = BuildScriptContext {
-            installer,
             build_platform: if build_platform.is_windows() {
                 BuildPlatform::Windows
             } else {
@@ -198,11 +227,11 @@ impl PythonBuildBackend {
 
         Ok(Recipe {
             schema_version: 1,
+            context: Default::default(),
             package: Package {
                 version: version.into(),
                 name,
             },
-            context: Default::default(),
             cache: None,
             source: vec![Source::Path(PathSource {
                 // TODO: How can we use a git source?
@@ -245,6 +274,7 @@ impl PythonBuildBackend {
     /// Returns the build configuration for a recipe
     pub async fn build_configuration(
         &self,
+        target_platform: Platform,
         recipe: &Recipe,
         channels: Vec<Url>,
     ) -> miette::Result<BuildConfiguration> {
@@ -271,14 +301,17 @@ impl PythonBuildBackend {
         .into_diagnostic()
         .context("failed to setup build directories")?;
 
-        let host_platform = Platform::current();
+        let host_platform = if target_platform == Platform::NoArch {
+            Platform::current()
+        } else {
+            target_platform
+        };
         let build_platform = Platform::current();
 
         let variant = BTreeMap::new();
 
         Ok(BuildConfiguration {
-            // TODO: NoArch??
-            target_platform: Platform::NoArch,
+            target_platform,
             host_platform,
             build_platform,
             hash: HashInfo::from_variant(&variant, &recipe.build.noarch),
@@ -299,42 +332,13 @@ impl PythonBuildBackend {
     }
 }
 
-/// Determines the build input globs for given python package
-/// even this will be probably backend specific, e.g setuptools
-/// has a different way of determining the input globs than hatch etc.
-///
-/// However, lets take everything in the directory as input for now
 fn input_globs() -> Vec<String> {
-    vec![
+    [
         // Source files
-        "**/*.py",
-        "**/*.pyx",
-        "**/*.c",
-        "**/*.cpp",
-        "**/*.sh",
-        // Common data files
-        "**/*.json",
-        "**/*.yaml",
-        "**/*.yml",
-        "**/*.txt",
-        // Project configuration
-        "setup.py",
-        "setup.cfg",
-        "pyproject.toml",
-        "requirements*.txt",
-        "Pipfile",
-        "Pipfile.lock",
-        "poetry.lock",
-        "tox.ini",
-        // Build configuration
-        "Makefile",
-        "MANIFEST.in",
-        "tests/**/*.py",
-        "docs/**/*.rst",
-        "docs/**/*.md",
-        // Versioning
-        "VERSION",
-        "version.py",
+        "**/*.{c,cc,cxx,cpp,h,hpp,hxx}",
+        // CMake files
+        "**/*.{cmake,cmake.in}",
+        "**/CMakeFiles.txt",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -342,7 +346,7 @@ fn input_globs() -> Vec<String> {
 }
 
 #[async_trait::async_trait]
-impl Protocol for PythonBuildBackend {
+impl Protocol for CMakeBuildBackend {
     async fn get_conda_metadata(
         &self,
         params: CondaMetadataParams,
@@ -359,11 +363,17 @@ impl Protocol for PythonBuildBackend {
                 .into_diagnostic()
                 .context("failed to determine channels from the manifest")?,
         };
+        let target_platform = params.target_platform.unwrap_or_else(Platform::current);
+        if !self.manifest.supports_target_platform(target_platform) {
+            miette::bail!("the project does not support the target platform ({target_platform})");
+        }
 
         // TODO: Determine how and if we can determine this from the manifest.
-        let recipe = self.recipe(&channel_config)?;
+        let recipe = self.recipe(target_platform, &channel_config)?;
         let output = Output {
-            build_configuration: self.build_configuration(&recipe, channels).await?,
+            build_configuration: self
+                .build_configuration(target_platform, &recipe, channels)
+                .await?,
             recipe,
             finalized_dependencies: None,
             finalized_cache_dependencies: None,
@@ -434,10 +444,16 @@ impl Protocol for PythonBuildBackend {
                 .into_diagnostic()
                 .context("failed to determine channels from the manifest")?,
         };
+        let target_platform = params.target_platform.unwrap_or_else(Platform::current);
+        if !self.manifest.supports_target_platform(target_platform) {
+            miette::bail!("the project does not support the target platform ({target_platform})");
+        }
 
-        let recipe = self.recipe(&channel_config)?;
+        let recipe = self.recipe(target_platform, &channel_config)?;
         let output = Output {
-            build_configuration: self.build_configuration(&recipe, channels).await?,
+            build_configuration: self
+                .build_configuration(target_platform, &recipe, channels)
+                .await?,
             recipe,
             finalized_dependencies: None,
             finalized_cache_dependencies: None,
@@ -470,19 +486,19 @@ impl Protocol for PythonBuildBackend {
     }
 }
 
-pub struct PythonBuildBackendFactory {
+pub struct CMakeBuildBackendFactory {
     logging_output_handler: LoggingOutputHandler,
 }
 
 #[async_trait::async_trait]
-impl ProtocolFactory for PythonBuildBackendFactory {
-    type Protocol = PythonBuildBackend;
+impl ProtocolFactory for CMakeBuildBackendFactory {
+    type Protocol = CMakeBuildBackend;
 
     async fn initialize(
         &self,
         params: InitializeParams,
     ) -> miette::Result<(Self::Protocol, InitializeResult)> {
-        let instance = PythonBuildBackend::new(
+        let instance = CMakeBuildBackend::new(
             params.manifest_path.as_path(),
             self.logging_output_handler.clone(),
         )?;
