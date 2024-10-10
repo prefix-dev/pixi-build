@@ -11,6 +11,9 @@ cache:
       - ${{ compiler("rust") }}
     host:
       - xz >=5.0, <6.0
+      - if: unix
+        then: openssl
+      
   build:
     script:
       - if: unix
