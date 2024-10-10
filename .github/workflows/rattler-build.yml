@@ -25,8 +25,9 @@ jobs:
         with:
           pixi-version: v0.32.1
           cache: true
+          environments: build-self
       - name: Run rattler-build
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
-          pixi -e build-self rattler-build build --output ${{ env.RUNNER_TEMP }} --target-platform ${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
+          pixi --env build-self rattler-build build --output ${{ env.RUNNER_TEMP }} --target-platform ${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
