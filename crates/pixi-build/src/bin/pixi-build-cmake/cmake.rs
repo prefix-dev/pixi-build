@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, path::Path, str::FromStr, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
 
 use chrono::Utc;
 use miette::{Context, IntoDiagnostic};
@@ -14,7 +19,7 @@ use pixi_build_types::{
         conda_metadata::{CondaMetadataParams, CondaMetadataResult},
         initialize::{InitializeParams, InitializeResult},
     },
-    BackendCapabilities, CondaPackageMetadata, FrontendCapabilities,
+    BackendCapabilities, CondaPackageMetadata, FrontendCapabilities, PlatformAndVirtualPackages,
 };
 use pixi_manifest::{Dependencies, Manifest, SpecType};
 use pixi_spec::PixiSpec;
@@ -22,7 +27,9 @@ use rattler_build::{
     build::run_build,
     console_utils::LoggingOutputHandler,
     hash::HashInfo,
-    metadata::{BuildConfiguration, Directories, Output, PackagingSettings},
+    metadata::{
+        BuildConfiguration, Directories, Output, PackagingSettings, PlatformWithVirtualPackages,
+    },
     recipe::{
         parser::{Build, Dependency, Package, PathSource, Requirements, ScriptContent, Source},
         Recipe,
@@ -34,6 +41,7 @@ use rattler_conda_types::{
     package::ArchiveType, ChannelConfig, MatchSpec, NoArchType, PackageName, Platform,
 };
 use rattler_package_streaming::write::CompressionLevel;
+use rattler_virtual_packages::VirtualPackageOverrides;
 use reqwest::Url;
 use tempfile::tempdir;
 
@@ -45,6 +53,7 @@ use crate::{
 pub struct CMakeBuildBackend {
     logging_output_handler: LoggingOutputHandler,
     manifest: Manifest,
+    cache_dir: Option<PathBuf>,
 }
 
 impl CMakeBuildBackend {
@@ -63,6 +72,7 @@ impl CMakeBuildBackend {
     pub fn new(
         manifest_path: &Path,
         logging_output_handler: LoggingOutputHandler,
+        cache_dir: Option<PathBuf>,
     ) -> miette::Result<Self> {
         // Load the manifest from the source directory
         let manifest = Manifest::from_path(manifest_path).with_context(|| {
@@ -72,6 +82,7 @@ impl CMakeBuildBackend {
         Ok(Self {
             manifest,
             logging_output_handler,
+            cache_dir,
         })
     }
 
@@ -194,7 +205,7 @@ impl CMakeBuildBackend {
     /// Constructs a [`Recipe`] from the current manifest.
     fn recipe(
         &self,
-        target_platform: Platform,
+        host_platform: Platform,
         channel_config: &ChannelConfig,
     ) -> miette::Result<Recipe> {
         let manifest_root = self
@@ -212,7 +223,7 @@ impl CMakeBuildBackend {
 
         let noarch_type = NoArchType::none();
 
-        let requirements = self.requirements(target_platform, channel_config)?;
+        let requirements = self.requirements(host_platform, channel_config)?;
         let build_platform = Platform::current();
         let build_number = 0;
 
@@ -274,9 +285,10 @@ impl CMakeBuildBackend {
     /// Returns the build configuration for a recipe
     pub async fn build_configuration(
         &self,
-        target_platform: Platform,
         recipe: &Recipe,
         channels: Vec<Url>,
+        build_platform: Option<PlatformAndVirtualPackages>,
+        host_platform: Option<PlatformAndVirtualPackages>,
     ) -> miette::Result<BuildConfiguration> {
         // Parse the package name from the manifest
         let Some(name) = self.manifest.parsed.project.name.clone() else {
@@ -301,17 +313,33 @@ impl CMakeBuildBackend {
         .into_diagnostic()
         .context("failed to setup build directories")?;
 
-        let host_platform = if target_platform == Platform::NoArch {
-            Platform::current()
+        let build_platform = build_platform.map(|p| PlatformWithVirtualPackages {
+            platform: p.platform,
+            virtual_packages: p.virtual_packages.unwrap_or_default(),
+        });
+
+        let host_platform = host_platform.map(|p| PlatformWithVirtualPackages {
+            platform: p.platform,
+            virtual_packages: p.virtual_packages.unwrap_or_default(),
+        });
+
+        let (build_platform, host_platform) = if build_platform.is_none() || host_platform.is_none()
+        {
+            let current_platform =
+                PlatformWithVirtualPackages::detect(&VirtualPackageOverrides::from_env())
+                    .into_diagnostic()?;
+            (
+                build_platform.unwrap_or_else(|| current_platform.clone()),
+                host_platform.unwrap_or_else(|| current_platform),
+            )
         } else {
-            target_platform
+            (build_platform.unwrap(), host_platform.unwrap())
         };
-        let build_platform = Platform::current();
 
         let variant = BTreeMap::new();
 
         Ok(BuildConfiguration {
-            target_platform,
+            target_platform: host_platform.platform,
             host_platform,
             build_platform,
             hash: HashInfo::from_variant(&variant, &recipe.build.noarch),
@@ -363,16 +391,26 @@ impl Protocol for CMakeBuildBackend {
                 .into_diagnostic()
                 .context("failed to determine channels from the manifest")?,
         };
-        let target_platform = params.target_platform.unwrap_or_else(Platform::current);
-        if !self.manifest.supports_target_platform(target_platform) {
-            miette::bail!("the project does not support the target platform ({target_platform})");
+
+        let host_platform = params
+            .host_platform
+            .as_ref()
+            .map(|p| p.platform)
+            .unwrap_or(Platform::current());
+        if !self.manifest.supports_target_platform(host_platform) {
+            miette::bail!("the project does not support the target platform ({host_platform})");
         }
 
         // TODO: Determine how and if we can determine this from the manifest.
-        let recipe = self.recipe(target_platform, &channel_config)?;
+        let recipe = self.recipe(host_platform, &channel_config)?;
         let output = Output {
             build_configuration: self
-                .build_configuration(target_platform, &recipe, channels)
+                .build_configuration(
+                    &recipe,
+                    channels,
+                    params.build_platform,
+                    params.host_platform,
+                )
                 .await?,
             recipe,
             finalized_dependencies: None,
@@ -383,6 +421,7 @@ impl Protocol for CMakeBuildBackend {
             extra_meta: None,
         };
         let tool_config = Configuration::builder()
+            .with_opt_cache_dir(self.cache_dir.clone())
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
@@ -444,7 +483,11 @@ impl Protocol for CMakeBuildBackend {
                 .into_diagnostic()
                 .context("failed to determine channels from the manifest")?,
         };
-        let target_platform = params.target_platform.unwrap_or_else(Platform::current);
+        let target_platform = params
+            .host_platform
+            .as_ref()
+            .map(|p| p.platform)
+            .unwrap_or_else(Platform::current);
         if !self.manifest.supports_target_platform(target_platform) {
             miette::bail!("the project does not support the target platform ({target_platform})");
         }
@@ -452,7 +495,15 @@ impl Protocol for CMakeBuildBackend {
         let recipe = self.recipe(target_platform, &channel_config)?;
         let output = Output {
             build_configuration: self
-                .build_configuration(target_platform, &recipe, channels)
+                .build_configuration(
+                    &recipe,
+                    channels,
+                    params.host_platform.clone(),
+                    Some(PlatformAndVirtualPackages {
+                        platform: target_platform,
+                        virtual_packages: params.build_platform_virtual_packages,
+                    }),
+                )
                 .await?,
             recipe,
             finalized_dependencies: None,
@@ -463,6 +514,7 @@ impl Protocol for CMakeBuildBackend {
             extra_meta: None,
         };
         let tool_config = Configuration::builder()
+            .with_opt_cache_dir(self.cache_dir.clone())
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
@@ -501,6 +553,7 @@ impl ProtocolFactory for CMakeBuildBackendFactory {
         let instance = CMakeBuildBackend::new(
             params.manifest_path.as_path(),
             self.logging_output_handler.clone(),
+            params.cache_directory,
         )?;
 
         let capabilities = instance.capabilites(&params.capabilities);

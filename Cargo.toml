@@ -7,7 +7,7 @@ edition = "2021"
 
 [workspace.dependencies]
 async-trait = "0.1.82"
-clap = "4.5.19"
+clap = "4.5.20"
 itertools = "0.13.0"
 
 chrono = "0.4.38"
@@ -28,17 +28,18 @@ jsonrpc-stdio-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-core = "18.0.0"
 
-rattler-build = { git = "https://github.com/prefix-dev/rattler-build", branch = "main", default-features = false }
+rattler-build = { git = "https://github.com/baszalmstra/rattler-build", branch = "feat/virtual_packages_for_platforms", default-features = false }
 rattler_conda_types = "0.28.2"
 rattler_package_streaming = "0.22.10"
+rattler_virtual_packages = "1.1.7"
 
-# pixi_build_types = { path = "../pixi-build-branch/crates/pixi_build_types" }
-# pixi_consts = { path = "../pixi-build-branch/crates/pixi_consts" }
-# pixi_manifest = { path = "../pixi-build-branch/crates/pixi_manifest" }
-# pixi_spec = { path = "../pixi-build-branch/crates/pixi_spec" }
+#pixi_build_types = { path = "../pixi-build-branch/crates/pixi_build_types" }
+#pixi_consts = { path = "../pixi-build-branch/crates/pixi_consts" }
+#pixi_manifest = { path = "../pixi-build-branch/crates/pixi_manifest" }
+#pixi_spec = { path = "../pixi-build-branch/crates/pixi_spec" }
 
-pixi_build_types = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
-pixi_consts = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
-pixi_manifest = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
-pixi_spec = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_build_types = { git = "https://github.com/baszalmstra/pixi", branch = "feat/virtual_packages_for_platforms" }
+pixi_consts = { git = "https://github.com/baszalmstra/pixi", branch = "feat/virtual_packages_for_platforms" }
+pixi_manifest = { git = "https://github.com/baszalmstra/pixi", branch = "feat/virtual_packages_for_platforms" }
+pixi_spec = { git = "https://github.com/baszalmstra/pixi", branch = "feat/virtual_packages_for_platforms" }
 

@@ -15,6 +15,7 @@ rattler-build = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 rattler_conda_types = { workspace = true }
 rattler_package_streaming = { workspace = true }
+rattler_virtual_packages = { workspace = true }
 chrono = { workspace = true }
 miette = { workspace = true }
 reqwest-middleware = { workspace = true }
