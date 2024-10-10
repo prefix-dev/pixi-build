@@ -13,7 +13,7 @@ cache:
       - xz >=5.0, <6.0
       - if: unix
         then: openssl
-      
+
   build:
     script:
       - if: unix
@@ -27,15 +27,31 @@ outputs:
       name: pixi-build-python
     build:
       files:
-        - bin/pixi-build-python
+        if: unix
+        then:
+          - bin/pixi-build-python
+        else:
+          - bin/pixi-build-python.exe
     tests:
       - script:
-          - pixi-build-python --help
+          if: unix
+          then:
+            - pixi-build-python --help
+          else:
+            - pixi-build-python.exe --help
   - package:
       name: pixi-build-cmake
     build:
       files:
-        - bin/pixi-build-cmake
+        if: unix
+        then:
+          - bin/pixi-build-cmake
+        else:
+          - bin/pixi-build-cmake.exe
     tests:
       - script:
-          - pixi-build-cmake --help
+          if: unix
+          then:
+            - pixi-build-cmake --help
+          else:
+            - pixi-build-cmake.exe --help
