@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, path::Path, str::FromStr, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
 
 use chrono::Utc;
 use miette::{Context, IntoDiagnostic};
@@ -14,7 +19,7 @@ use pixi_build_types::{
         conda_metadata::{CondaMetadataParams, CondaMetadataResult},
         initialize::{InitializeParams, InitializeResult},
     },
-    BackendCapabilities, CondaPackageMetadata, FrontendCapabilities,
+    BackendCapabilities, CondaPackageMetadata, FrontendCapabilities, PlatformAndVirtualPackages,
 };
 use pixi_manifest::{Dependencies, Manifest, SpecType};
 use pixi_spec::PixiSpec;
@@ -22,7 +27,9 @@ use rattler_build::{
     build::run_build,
     console_utils::LoggingOutputHandler,
     hash::HashInfo,
-    metadata::{BuildConfiguration, Directories, Output, PackagingSettings},
+    metadata::{
+        BuildConfiguration, Directories, Output, PackagingSettings, PlatformWithVirtualPackages,
+    },
     recipe::{
         parser::{Build, Dependency, Package, PathSource, Requirements, ScriptContent, Source},
         Recipe,
@@ -34,6 +41,7 @@ use rattler_conda_types::{
     package::ArchiveType, ChannelConfig, MatchSpec, NoArchType, PackageName, Platform,
 };
 use rattler_package_streaming::write::CompressionLevel;
+use rattler_virtual_packages::VirtualPackageOverrides;
 use reqwest::Url;
 use tempfile::tempdir;
 
@@ -42,6 +50,7 @@ use crate::build_script::{BuildPlatform, BuildScriptContext, Installer};
 pub struct PythonBuildBackend {
     logging_output_handler: LoggingOutputHandler,
     manifest: Manifest,
+    cache_dir: Option<PathBuf>,
 }
 
 impl PythonBuildBackend {
@@ -60,6 +69,7 @@ impl PythonBuildBackend {
     pub fn new(
         manifest_path: &Path,
         logging_output_handler: LoggingOutputHandler,
+        cache_dir: Option<PathBuf>,
     ) -> miette::Result<Self> {
         // Load the manifest from the source directory
         let manifest = Manifest::from_path(manifest_path).with_context(|| {
@@ -69,6 +79,7 @@ impl PythonBuildBackend {
         Ok(Self {
             manifest,
             logging_output_handler,
+            cache_dir,
         })
     }
 
@@ -247,6 +258,8 @@ impl PythonBuildBackend {
         &self,
         recipe: &Recipe,
         channels: Vec<Url>,
+        build_platform: Option<PlatformAndVirtualPackages>,
+        host_platform: Option<PlatformAndVirtualPackages>,
     ) -> miette::Result<BuildConfiguration> {
         // Parse the package name from the manifest
         let Some(name) = self.manifest.parsed.project.name.clone() else {
@@ -271,8 +284,29 @@ impl PythonBuildBackend {
         .into_diagnostic()
         .context("failed to setup build directories")?;
 
-        let host_platform = Platform::current();
-        let build_platform = Platform::current();
+        let build_platform = build_platform.map(|p| PlatformWithVirtualPackages {
+            platform: p.platform,
+            virtual_packages: p.virtual_packages.unwrap_or_default(),
+        });
+
+        let host_platform = host_platform.map(|p| PlatformWithVirtualPackages {
+            platform: p.platform,
+            virtual_packages: p.virtual_packages.unwrap_or_default(),
+        });
+
+        let (build_platform, host_platform) = if build_platform.is_none() || host_platform.is_none()
+        {
+            let current_platform = rattler_build::metadata::PlatformWithVirtualPackages::detect(
+                &VirtualPackageOverrides::from_env(),
+            )
+            .into_diagnostic()?;
+            (
+                build_platform.unwrap_or_else(|| current_platform.clone()),
+                host_platform.unwrap_or_else(|| current_platform),
+            )
+        } else {
+            (build_platform.unwrap(), host_platform.unwrap())
+        };
 
         let variant = BTreeMap::new();
 
@@ -363,7 +397,14 @@ impl Protocol for PythonBuildBackend {
         // TODO: Determine how and if we can determine this from the manifest.
         let recipe = self.recipe(&channel_config)?;
         let output = Output {
-            build_configuration: self.build_configuration(&recipe, channels).await?,
+            build_configuration: self
+                .build_configuration(
+                    &recipe,
+                    channels,
+                    params.build_platform,
+                    params.host_platform,
+                )
+                .await?,
             recipe,
             finalized_dependencies: None,
             finalized_cache_dependencies: None,
@@ -373,6 +414,7 @@ impl Protocol for PythonBuildBackend {
             extra_meta: None,
         };
         let tool_config = Configuration::builder()
+            .with_opt_cache_dir(self.cache_dir.clone())
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
@@ -437,7 +479,9 @@ impl Protocol for PythonBuildBackend {
 
         let recipe = self.recipe(&channel_config)?;
         let output = Output {
-            build_configuration: self.build_configuration(&recipe, channels).await?,
+            build_configuration: self
+                .build_configuration(&recipe, channels, None, None)
+                .await?,
             recipe,
             finalized_dependencies: None,
             finalized_cache_dependencies: None,
@@ -447,6 +491,7 @@ impl Protocol for PythonBuildBackend {
             extra_meta: None,
         };
         let tool_config = Configuration::builder()
+            .with_opt_cache_dir(self.cache_dir.clone())
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
@@ -485,6 +530,7 @@ impl ProtocolFactory for PythonBuildBackendFactory {
         let instance = PythonBuildBackend::new(
             params.manifest_path.as_path(),
             self.logging_output_handler.clone(),
+            params.cache_directory,
         )?;
 
         let capabilities = instance.capabilites(&params.capabilities);
