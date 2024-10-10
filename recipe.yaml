@@ -27,31 +27,27 @@ outputs:
       name: pixi-build-python
     build:
       files:
-        if: unix
-        then:
-          - bin/pixi-build-python
-        else:
-          - bin/pixi-build-python.exe
+        - bin/pixi-build-python
+        - bin/pixi-build-python.exe
     tests:
-      - script:
-          if: unix
-          then:
+      - if: unix
+        then:
+          script:
             - pixi-build-python --help
-          else:
+        else:
+          script:
             - pixi-build-python.exe --help
   - package:
       name: pixi-build-cmake
     build:
       files:
-        if: unix
-        then:
-          - bin/pixi-build-cmake
-        else:
-          - bin/pixi-build-cmake.exe
+        - bin/pixi-build-cmake
+        - bin/pixi-build-cmake.exe
     tests:
-      - script:
-          if: unix
-          then:
+      - if: unix
+        then:
+          script:
             - pixi-build-cmake --help
-          else:
+        else:
+          script:
             - pixi-build-cmake.exe --help
