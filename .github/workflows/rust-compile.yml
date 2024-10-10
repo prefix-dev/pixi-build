@@ -4,7 +4,7 @@ on:
       - "main"
   pull_request:
 
-name: Rust
+name: Rust Test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,0 +1,38 @@
+recipe:
+  name: pixi-build
+  version: "0.0.1"
+
+source:
+  path: .
+
+cache:
+  requirements:
+    build:
+      - ${{ compiler("rust") }}
+    host:
+      - xz >=5.0, <6.0
+  build:
+    script:
+      - if: unix
+        then:
+          - cargo install --locked --root $PREFIX --path crates/pixi-build --no-track --bins
+        else:
+          - cargo install --locked --root %PREFIX% --path crates/pixi-build --no-track --bins
+
+outputs:
+  - package:
+      name: pixi-build-python
+    build:
+      files:
+        - bin/pixi-build-python
+    tests:
+      - script:
+          - pixi-build-python --help
+  - package:
+      name: pixi-build-cmake
+    build:
+      files:
+        - bin/pixi-build-cmake
+    tests:
+      - script:
+          - pixi-build-cmake --help
