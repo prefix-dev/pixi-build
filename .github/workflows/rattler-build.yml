@@ -31,4 +31,4 @@ jobs:
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
-          pixi r -e build-self rattler-build build --output=$RUNNER_TEMP --target-platform=${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
+          pixi r -e build-self rattler-build build --output-dir=$RUNNER_TEMP --target-platform=${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
