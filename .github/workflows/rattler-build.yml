@@ -27,7 +27,8 @@ jobs:
           cache: true
           environments: build-self
       - name: Run rattler-build
+        shell: bash
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
-          pixi --env build-self rattler-build build --output ${{ env.RUNNER_TEMP }} --target-platform ${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
+          pixi r -e build-self rattler-build build --output=$RUNNER_TEMP --target-platform=${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
