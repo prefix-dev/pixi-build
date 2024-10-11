@@ -323,17 +323,17 @@ impl CMakeBuildBackend {
             virtual_packages: p.virtual_packages.unwrap_or_default(),
         });
 
-        let (build_platform, host_platform) = if build_platform.is_none() || host_platform.is_none()
-        {
-            let current_platform =
-                PlatformWithVirtualPackages::detect(&VirtualPackageOverrides::from_env())
-                    .into_diagnostic()?;
-            (
-                build_platform.unwrap_or_else(|| current_platform.clone()),
-                host_platform.unwrap_or_else(|| current_platform),
-            )
-        } else {
-            (build_platform.unwrap(), host_platform.unwrap())
+        let (build_platform, host_platform) = match (build_platform, host_platform) {
+            (Some(build_platform), Some(host_platform)) => (build_platform, host_platform),
+            (build_platform, host_platform) => {
+                let current_platform =
+                    PlatformWithVirtualPackages::detect(&VirtualPackageOverrides::from_env())
+                        .into_diagnostic()?;
+                (
+                    build_platform.unwrap_or_else(|| current_platform.clone()),
+                    host_platform.unwrap_or(current_platform),
+                )
+            }
         };
 
         let variant = BTreeMap::new();

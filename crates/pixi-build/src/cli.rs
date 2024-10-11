@@ -106,6 +106,7 @@ async fn get_conda_metadata(
         .initialize(InitializeParams {
             manifest_path: manifest_path.to_path_buf(),
             capabilities: FrontendCapabilities {},
+            cache_directory: None,
         })
         .await?;
 
@@ -126,7 +127,6 @@ async fn get_conda_metadata(
             channel_configuration: ChannelConfiguration {
                 base_url: channel_config.channel_alias,
             },
-            cache_directory: None,
         })
         .await
 }
@@ -143,6 +143,7 @@ async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::R
         .initialize(InitializeParams {
             manifest_path: manifest_path.to_path_buf(),
             capabilities: FrontendCapabilities {},
+            cache_directory: None,
         })
         .await?;
 
