@@ -7,18 +7,21 @@ cmake %CMAKE_ARGS% ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
       -DBUILD_SHARED_LIBS=ON ^
-      %SRC_DIR%
-if errorlevel 1 exit 1
+      -B %SRC_DIR%\..\build ^
+      -S "{{ source_dir }}"
+@if errorlevel 1 exit 1
+cmake --build %SRC_DIR%\..\build --target install
+@if errorlevel 1 exit 1
 {% else -%}
 cmake $CMAKE_ARGS \
       -GNinja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DBUILD_SHARED_LIBS=ON \
-      $SRC_DIR
+      -B $SRC_DIR/../build \
+      -S "{{ source_dir }}"
+cmake --build $SRC_DIR/../build --target install
 {% endif -%}
-
-cmake --build . --target install
 
 {% if build_platform == "windows" -%}
 if errorlevel 1 exit 1

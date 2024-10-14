@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use miette::IntoDiagnostic;
+use miette::{Context, IntoDiagnostic};
 use pixi_build_types::{
     procedures::{
         conda_build::CondaBuildParams,
@@ -14,6 +14,7 @@ use pixi_build_types::{
 use rattler_build::console_utils::{get_default_env_filter, LoggingOutputHandler};
 use rattler_conda_types::{ChannelConfig, GenericVirtualPackage, Platform};
 use rattler_virtual_packages::{VirtualPackage, VirtualPackageOverrides};
+use tempfile::TempDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
@@ -116,6 +117,10 @@ async fn get_conda_metadata(
         .map(GenericVirtualPackage::from)
         .collect();
 
+    let tempdir = TempDir::new_in(".")
+        .into_diagnostic()
+        .context("failed to create a temporary directory in the current directory")?;
+
     protocol
         .get_conda_metadata(CondaMetadataParams {
             build_platform: None,
@@ -127,6 +132,7 @@ async fn get_conda_metadata(
             channel_configuration: ChannelConfiguration {
                 base_url: channel_config.channel_alias,
             },
+            work_directory: tempdir.path().to_path_buf(),
         })
         .await
 }
@@ -147,6 +153,10 @@ async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::R
         })
         .await?;
 
+    let work_dir = TempDir::new_in(".")
+        .into_diagnostic()
+        .context("failed to create a temporary directory in the current directory")?;
+
     let result = protocol
         .build_conda(CondaBuildParams {
             host_platform: None,
@@ -156,6 +166,7 @@ async fn build(factory: impl ProtocolFactory, manifest_path: &Path) -> miette::R
                 base_url: channel_config.channel_alias,
             },
             outputs: None,
+            work_directory: work_dir.path().to_path_buf(),
         })
         .await?;
 

@@ -31,7 +31,7 @@ use rattler_build::{
         BuildConfiguration, Directories, Output, PackagingSettings, PlatformWithVirtualPackages,
     },
     recipe::{
-        parser::{Build, Dependency, Package, PathSource, Requirements, ScriptContent, Source},
+        parser::{Build, Dependency, Package, Requirements, ScriptContent},
         Recipe,
     },
     render::resolved_dependencies::DependencyInfo,
@@ -43,7 +43,6 @@ use rattler_conda_types::{
 use rattler_package_streaming::write::CompressionLevel;
 use rattler_virtual_packages::VirtualPackageOverrides;
 use reqwest::Url;
-use tempfile::tempdir;
 
 use crate::{
     build_script::{BuildPlatform, BuildScriptContext},
@@ -102,7 +101,7 @@ impl CMakeBuildBackend {
     /// recipe.
     fn requirements(
         &self,
-        target_platform: Platform,
+        host_platform: Platform,
         channel_config: &ChannelConfig,
     ) -> miette::Result<Requirements> {
         let mut requirements = Requirements::default();
@@ -112,17 +111,17 @@ impl CMakeBuildBackend {
         let run_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Run), Some(target_platform))),
+                .filter_map(|f| f.dependencies(SpecType::Run, Some(host_platform))),
         );
         let mut host_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Host), Some(target_platform))),
+                .filter_map(|f| f.dependencies(SpecType::Host, Some(host_platform))),
         );
         let build_dependencies = Dependencies::from(
             default_features
                 .iter()
-                .filter_map(|f| f.dependencies(Some(SpecType::Build), Some(target_platform))),
+                .filter_map(|f| f.dependencies(SpecType::Build, Some(host_platform))),
         );
 
         // Ensure build tools are available in the host dependencies section.
@@ -167,7 +166,7 @@ impl CMakeBuildBackend {
 
         // Add compilers to the dependencies.
         requirements.build.extend(
-            self.compiler_packages(target_platform)
+            self.compiler_packages(host_platform)
                 .into_iter()
                 .map(Dependency::Spec),
         );
@@ -233,6 +232,7 @@ impl CMakeBuildBackend {
             } else {
                 BuildPlatform::Unix
             },
+            source_dir: manifest_root.display().to_string(),
         }
         .render();
 
@@ -244,16 +244,18 @@ impl CMakeBuildBackend {
                 name,
             },
             cache: None,
-            source: vec![Source::Path(PathSource {
-                // TODO: How can we use a git source?
-                path: manifest_root.to_path_buf(),
-                sha256: None,
-                md5: None,
-                patches: vec![],
-                target_directory: None,
-                file_name: None,
-                use_gitignore: true,
-            })],
+            // source: vec![Source::Path(PathSource {
+            //     // TODO: How can we use a git source?
+            //     path: manifest_root.to_path_buf(),
+            //     sha256: None,
+            //     md5: None,
+            //     patches: vec![],
+            //     target_directory: None,
+            //     file_name: None,
+            //     use_gitignore: true,
+            // })],
+            // We hack the source location
+            source: vec![],
             build: Build {
                 number: build_number,
                 string: Default::default(),
@@ -289,6 +291,7 @@ impl CMakeBuildBackend {
         channels: Vec<Url>,
         build_platform: Option<PlatformAndVirtualPackages>,
         host_platform: Option<PlatformAndVirtualPackages>,
+        work_directory: &Path,
     ) -> miette::Result<BuildConfiguration> {
         // Parse the package name from the manifest
         let Some(name) = self.manifest.parsed.project.name.clone() else {
@@ -297,17 +300,14 @@ impl CMakeBuildBackend {
         let name = PackageName::from_str(&name).into_diagnostic()?;
 
         // TODO: Setup defaults
-        let output_dir = tempdir()
-            .into_diagnostic()
-            .context("failed to create temporary directory")?;
-        std::fs::create_dir_all(&output_dir)
+        std::fs::create_dir_all(work_directory)
             .into_diagnostic()
             .context("failed to create output directory")?;
         let directories = Directories::setup(
             name.as_normalized(),
             self.manifest.path.as_path(),
-            output_dir.path(),
-            false,
+            work_directory,
+            true,
             &Utc::now(),
         )
         .into_diagnostic()
@@ -410,6 +410,7 @@ impl Protocol for CMakeBuildBackend {
                     channels,
                     params.build_platform,
                     params.host_platform,
+                    &params.work_directory,
                 )
                 .await?,
             recipe,
@@ -425,6 +426,7 @@ impl Protocol for CMakeBuildBackend {
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
+            .with_keep_build(true)
             .finish();
 
         let temp_recipe = TemporaryRenderedRecipe::from_output(&output)?;
@@ -483,16 +485,16 @@ impl Protocol for CMakeBuildBackend {
                 .into_diagnostic()
                 .context("failed to determine channels from the manifest")?,
         };
-        let target_platform = params
+        let host_platform = params
             .host_platform
             .as_ref()
             .map(|p| p.platform)
             .unwrap_or_else(Platform::current);
-        if !self.manifest.supports_target_platform(target_platform) {
-            miette::bail!("the project does not support the target platform ({target_platform})");
+        if !self.manifest.supports_target_platform(host_platform) {
+            miette::bail!("the project does not support the target platform ({host_platform})");
         }
 
-        let recipe = self.recipe(target_platform, &channel_config)?;
+        let recipe = self.recipe(host_platform, &channel_config)?;
         let output = Output {
             build_configuration: self
                 .build_configuration(
@@ -500,9 +502,10 @@ impl Protocol for CMakeBuildBackend {
                     channels,
                     params.host_platform.clone(),
                     Some(PlatformAndVirtualPackages {
-                        platform: target_platform,
+                        platform: host_platform,
                         virtual_packages: params.build_platform_virtual_packages,
                     }),
+                    &params.work_directory,
                 )
                 .await?,
             recipe,
@@ -518,6 +521,7 @@ impl Protocol for CMakeBuildBackend {
             .with_logging_output_handler(self.logging_output_handler.clone())
             .with_channel_config(channel_config.clone())
             .with_testing(false)
+            .with_keep_build(true)
             .finish();
 
         let temp_recipe = TemporaryRenderedRecipe::from_output(&output)?;
