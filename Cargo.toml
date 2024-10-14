@@ -38,8 +38,8 @@ rattler_virtual_packages = "1.1.7"
 #pixi_manifest = { path = "../pixi-build-branch/crates/pixi_manifest" }
 #pixi_spec = { path = "../pixi-build-branch/crates/pixi_spec" }
 
-pixi_build_types = { git = "https://github.com/baszalmstra/pixi", branch = "feat/incremental_compilation" }
-pixi_consts = { git = "https://github.com/baszalmstra/pixi", branch = "feat/incremental_compilation" }
-pixi_manifest = { git = "https://github.com/baszalmstra/pixi", branch = "feat/incremental_compilation" }
-pixi_spec = { git = "https://github.com/baszalmstra/pixi", branch = "feat/incremental_compilation" }
+pixi_build_types = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_consts = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_manifest = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
+pixi_spec = { git = "https://github.com/prefix-dev/pixi", branch = "feature/pixi-build" }
 
