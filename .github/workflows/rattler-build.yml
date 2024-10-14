@@ -37,3 +37,14 @@ jobs:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
           pixi r -e build-self rattler-build build --output-dir=$RUNNER_TEMP --target-platform=${{ env.TARGET_PLATFORM }} --no-include-recipe --experimental
+      - name: Upload all packages
+        shell: bash
+        # do not upload on PR
+        if: github.event_name == 'push'
+        env:
+          PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }}
+        run: |
+          # ignore errors because we want to ignore duplicate packages
+          for file in $RUNNTER_TEMP/**/*.conda; do
+            rattler-build upload prefix -c pixi-build-backends "$file"
+          done
