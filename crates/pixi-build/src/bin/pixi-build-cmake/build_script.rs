@@ -4,6 +4,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub struct BuildScriptContext {
     pub build_platform: BuildPlatform,
+    pub source_dir: String,
 }
 
 #[derive(Serialize)]

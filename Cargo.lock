@@ -1088,7 +1088,6 @@ dependencies = [
 [[package]]
 name = "fancy_display"
 version = "0.1.0"
-source = "git+https://github.com/baszalmstra/pixi?branch=feat/virtual_packages_for_platforms#1d28a0faad2853fbe669598472b4f4f0e91e90a6"
 dependencies = [
  "console",
 ]
@@ -2890,7 +2889,6 @@ dependencies = [
 [[package]]
 name = "pixi_build_types"
 version = "0.1.0"
-source = "git+https://github.com/baszalmstra/pixi?branch=feat/virtual_packages_for_platforms#1d28a0faad2853fbe669598472b4f4f0e91e90a6"
 dependencies = [
  "rattler_conda_types",
  "serde",
@@ -2901,7 +2899,6 @@ dependencies = [
 [[package]]
 name = "pixi_consts"
 version = "0.1.0"
-source = "git+https://github.com/baszalmstra/pixi?branch=feat/virtual_packages_for_platforms#1d28a0faad2853fbe669598472b4f4f0e91e90a6"
 dependencies = [
  "console",
  "lazy_static",
@@ -2912,7 +2909,6 @@ dependencies = [
 [[package]]
 name = "pixi_manifest"
 version = "0.1.0"
-source = "git+https://github.com/baszalmstra/pixi?branch=feat/virtual_packages_for_platforms#1d28a0faad2853fbe669598472b4f4f0e91e90a6"
 dependencies = [
  "console",
  "dunce",
@@ -2944,7 +2940,6 @@ dependencies = [
 [[package]]
 name = "pixi_spec"
 version = "0.1.0"
-source = "git+https://github.com/baszalmstra/pixi?branch=feat/virtual_packages_for_platforms#1d28a0faad2853fbe669598472b4f4f0e91e90a6"
 dependencies = [
  "dirs",
  "file_url",
@@ -3177,8 +3172,8 @@ dependencies = [
 
 [[package]]
 name = "rattler-build"
-version = "0.25.0"
-source = "git+https://github.com/baszalmstra/rattler-build?branch=feat/virtual_packages_for_platforms#bbe8f1b9c89ee13427866c7917c8ac3171778927"
+version = "0.26.0"
+source = "git+https://github.com/prefix-dev/rattler-build?branch=main#3067372ea22be518496f471aa3ff7f99ea2f2159"
 dependencies = [
  "anyhow",
  "async-once-cell",
