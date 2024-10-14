@@ -1088,6 +1088,7 @@ dependencies = [
 [[package]]
 name = "fancy_display"
 version = "0.1.0"
+source = "git+https://github.com/baszalmstra/pixi?branch=feat/incremental_compilation#f789ae8cb8e2534fa3bed245e0f2af45f71d83af"
 dependencies = [
  "console",
 ]
@@ -2889,6 +2890,7 @@ dependencies = [
 [[package]]
 name = "pixi_build_types"
 version = "0.1.0"
+source = "git+https://github.com/baszalmstra/pixi?branch=feat/incremental_compilation#f789ae8cb8e2534fa3bed245e0f2af45f71d83af"
 dependencies = [
  "rattler_conda_types",
  "serde",
@@ -2899,6 +2901,7 @@ dependencies = [
 [[package]]
 name = "pixi_consts"
 version = "0.1.0"
+source = "git+https://github.com/baszalmstra/pixi?branch=feat/incremental_compilation#f789ae8cb8e2534fa3bed245e0f2af45f71d83af"
 dependencies = [
  "console",
  "lazy_static",
@@ -2909,6 +2912,7 @@ dependencies = [
 [[package]]
 name = "pixi_manifest"
 version = "0.1.0"
+source = "git+https://github.com/baszalmstra/pixi?branch=feat/incremental_compilation#f789ae8cb8e2534fa3bed245e0f2af45f71d83af"
 dependencies = [
  "console",
  "dunce",
@@ -2940,6 +2944,7 @@ dependencies = [
 [[package]]
 name = "pixi_spec"
 version = "0.1.0"
+source = "git+https://github.com/baszalmstra/pixi?branch=feat/incremental_compilation#f789ae8cb8e2534fa3bed245e0f2af45f71d83af"
 dependencies = [
  "dirs",
  "file_url",
