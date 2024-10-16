@@ -1,28 +1,35 @@
 ninja --version
 cmake --version
 
+# Windows
 {% if build_platform == "windows" -%}
-cmake %CMAKE_ARGS% ^
-      -GNinja ^
-      -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-      -DBUILD_SHARED_LIBS=ON ^
-      -B %SRC_DIR%\..\build ^
-      -S "{{ source_dir }}"
-@if errorlevel 1 exit 1
+if not exist %SRC_DIR%\..\build\CMakeCache.txt (
+    cmake %CMAKE_ARGS% ^
+          -GNinja ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -B %SRC_DIR%\..\build ^
+          -S "{{ source_dir }}"
+    @if errorlevel 1 exit 1
+)
 cmake --build %SRC_DIR%\..\build --target install
 @if errorlevel 1 exit 1
+
+# Non-Windows
 {% else -%}
-cmake $CMAKE_ARGS \
-      -GNinja \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DBUILD_SHARED_LIBS=ON \
-      -B $SRC_DIR/../build \
-      -S "{{ source_dir }}"
+if [ ! -f "$SRC_DIR/../build/CMakeCache.txt" ]; then
+    cmake $CMAKE_ARGS \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=ON \
+          -B $SRC_DIR/../build \
+          -S "{{ source_dir }}"
+fi
 cmake --build $SRC_DIR/../build --target install
 {% endif -%}
 
 {% if build_platform == "windows" -%}
-if errorlevel 1 exit 1
+@if errorlevel 1 exit 1
 {% endif %}
